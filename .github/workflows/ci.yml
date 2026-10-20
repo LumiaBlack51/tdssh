@@ -51,16 +51,12 @@ jobs:
             ./scripts/test-service.ps1 -Binary ./target/release/tdssh.exe
           }
       - name: Package
-        shell: bash
-        run: |
-          mkdir -p dist/tdssh
-          cp target/release/tdssh${{ runner.os == 'Windows' && '.exe' || '' }} dist/tdssh/
-          cp README.md LICENSE THIRD_PARTY.md dist/tdssh/
-          cp -r licenses scripts examples docs dist/tdssh/
-          mkdir -p dist/tdssh/licenses/netwatch
-          cp vendor/netwatch/LICENSE-* dist/tdssh/licenses/netwatch/
+        run: python scripts/package.py --binary target/release/tdssh${{ runner.os == 'Windows' && '.exe' || '' }} --platform ${{ runner.os }}
       - uses: actions/upload-artifact@v4
         with:
           name: tdssh-${{ runner.os }}-x64
-          path: dist/tdssh
+          path: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.sha256
           retention-days: 14

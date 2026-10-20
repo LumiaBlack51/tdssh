@@ -25,8 +25,11 @@ cargo build --release --locked
 ./scripts/install.ps1 -AddToPath
 ```
 
-GitHub Actions 同时生成 Linux x64 和 Windows x64 可执行文件及配套脚本；从仓库的
-Actions → Native validation → 成功的运行 → Artifacts 下载，无需本地 Rust。
+从仓库 [Releases](https://github.com/LumiaBlack51/tdssh/releases) 下载 Linux x64
+的 `.tar.gz` 或 Windows x64 的 `.zip`，其中已含可执行文件与配套脚本，无需本地 Rust。
+解压进入 `tdssh` 目录后运行 `bash scripts/install.sh ./tdssh`，Windows 为
+`./scripts/install.ps1 -Binary ./tdssh.exe -AddToPath`。
+GitHub Actions → Native validation → 成功运行 → Artifacts 也保留各次构建的安装包。
 Ubuntu 的 pwsh 可以直接执行 `tdssh`，安装服务时调用 bash 脚本。
 
 Ubuntu 服务端需要已有的本地 OpenSSH 服务，例如：

@@ -18,6 +18,10 @@
 - 公共中继上的真实 OpenSSH/SCP/ProxyCommand 强制直连测试通过；strace 记录到
   312 次成功的 `SO_BINDTODEVICE` 调用，目标为物理网卡 `wlo1`。原始 trace 仅用于
   本地检查，随临时缓存清理，不上传可能包含临时认证字节的网络跟踪。
+- Release 优化版在 HTTP_PROXY、HTTPS_PROXY、ALL_PROXY 均指向不可用本机代理时，
+  通过强制直连完成公共中继上的真实 SSH、SCP/SFTP、ProxyCommand 和退出码检查。
+- Ubuntu pwsh 7.6.7 执行 CLI，带空格的身份目录创建与读取通过；所有 pwsh 脚本
+  通过 PowerShell AST 语法检查。强制物理网卡模式的真实本地 QUIC UDP 双向校验也通过。
 - Bash 安装脚本语法与带空格、百分号、美元符路径的 systemd unit 生成。
 
 ## 边界
