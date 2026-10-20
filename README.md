@@ -10,26 +10,32 @@ TwoDrive、不使用 OneDrive 账号。当前版本是首个可用实现；验�
 
 ## 安装
 
-需要 Rust 1.96+、原生 OpenSSH 客户端；作为被连接端还需要 SSH 服务。
+需要原生 OpenSSH 客户端；被连接端还需要 SSH 服务。
+
+从仓库 [Releases](https://github.com/LumiaBlack51/tdssh/releases) 下载 Linux x64
+的 `.tar.gz` 或 Windows x64 的 `.zip`，其中已含可执行文件与配套脚本，**无需 Rust**。
+解压进入 `tdssh` 目录后，Ubuntu bash 执行：
+
+```bash
+bash scripts/install.sh ./tdssh
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Windows pwsh 7 中执行：
+
+```powershell
+./scripts/install.ps1 -Binary ./tdssh.exe -AddToPath
+```
+
+GitHub Actions → Native validation → 成功运行 → Artifacts 也保留各次构建的安装包。
+若从源码构建，则需要 Rust 1.96+：
 
 ```bash
 cargo build --release --locked
 ./scripts/install.sh
-export PATH="$HOME/.local/bin:$PATH"
 ```
 
-Windows 在 pwsh 7 中：
-
-```powershell
-cargo build --release --locked
-./scripts/install.ps1 -AddToPath
-```
-
-从仓库 [Releases](https://github.com/LumiaBlack51/tdssh/releases) 下载 Linux x64
-的 `.tar.gz` 或 Windows x64 的 `.zip`，其中已含可执行文件与配套脚本，无需本地 Rust。
-解压进入 `tdssh` 目录后运行 `bash scripts/install.sh ./tdssh`，Windows 为
-`./scripts/install.ps1 -Binary ./tdssh.exe -AddToPath`。
-GitHub Actions → Native validation → 成功运行 → Artifacts 也保留各次构建的安装包。
+源码构建后的 Windows 安装命令为 `./scripts/install.ps1 -AddToPath`。
 Ubuntu 的 pwsh 可以直接执行 `tdssh`，安装服务时调用 bash 脚本。
 
 Ubuntu 服务端需要已有的本地 OpenSSH 服务，例如：
@@ -132,6 +138,7 @@ DNS UDP/TCP、中继 TCP 和签名地址发布。内部旁路 CONNECT 代理仅�
 
 **强制模式不回退**：网卡不可用、绑定权限不足、物理 DNS 或中继无法访问时，连接失败。
 这不是强制 UDP 打洞成功；中继也可以通过物理网卡直连，不经本机 VPN。
+强制模式固定启动时选择的接口和源地址；切换网卡或 DHCP 地址变化后请重启常驻进程。
 它约束本程序的套接字出站，不能控制上级路由器、运营商或任意内核级重定向。
 存在额外防火墙重定向时应通过抓包验证。不要用关闭证书检查解决网络问题。
 

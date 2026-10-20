@@ -7,3 +7,9 @@
 
 __pycache__/
 *.pyc
+
+# Device identities and authorization belong in private runtime state.
+identity.json
+access.json
+state.lock
+network.lock

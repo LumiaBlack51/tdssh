@@ -43,3 +43,18 @@ Tokio stdin 的不可取消阻塞读取阻止了默认 runtime 销毁。
 
 改为在网络端点关闭后使用 `shutdown_background` 结束 runtime。相同测试在修复后
 及时以非零状态退出，不需要调用方先关闭 stdin。该回归随双平台 CLI smoke 运行。
+
+## GitHub 原生检查
+
+[最终原生验证](https://github.com/LumiaBlack51/tdssh/actions/runs/39423203064)，
+实现提交 `79d02264b5fdd61ce38ba3bf69437a5bb74f7641`：
+
+- Linux：30 项 Rust 测试、Clippy、真实 OpenSSH shell/SCP/SFTP/ProxyCommand、
+  保持 stdin 打开的撤销退出回归、systemd unit 检查与原生安装包生成通过。
+- Windows：26 项 Rust 测试、Clippy、真实双进程 QUIC 数据传输、同一 stdin 撤销回归、
+  pwsh 计划任务参数/开机配置生成、私钥受保护 DACL 检查与原生安装包生成通过。
+- 两平台 CI 安装包的外层归档和内层可执行文件 SHA256 均已重新校验。
+
+本地交付保留源码、必要的第三方源文件与许可证、原生可执行文件和安装包。
+已删除约 4.2 GiB 的 Cargo 构建输出；上游下载、临时 pwsh、原始 syscall 跟踪、
+临时身份/SSH 密钥和数据均由本次任务清理，不触碰其他项目或个人 SSH 配置。
