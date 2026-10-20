@@ -1,0 +1,66 @@
+name: Native validation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy,rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked
+      - run: cargo build --locked --release
+      - run: python scripts/smoke.py --binary target/release/tdssh${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: OpenSSH integration
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y openssh-server
+          sudo mkdir -p /run/sshd
+          python3 scripts/smoke-ssh.py --binary target/release/tdssh
+      - name: Bash and systemd unit
+        if: runner.os == 'Linux'
+        run: |
+          bash -n scripts/*.sh
+          scripts/install-service.sh --binary target/release/tdssh --state-dir '/tmp/tdssh state % $' --dry-run > /tmp/tdssh.service
+          systemd-analyze --user verify /tmp/tdssh.service
+      - name: PowerShell scripts and task arguments
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts/*.ps1 | ForEach-Object {
+            $errors = $null
+            [Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
+          if ($IsWindows) {
+            ./scripts/test-service.ps1 -Binary ./target/release/tdssh.exe
+          }
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist/tdssh
+          cp target/release/tdssh${{ runner.os == 'Windows' && '.exe' || '' }} dist/tdssh/
+          cp README.md LICENSE THIRD_PARTY.md dist/tdssh/
+          cp -r licenses scripts examples docs dist/tdssh/
+          mkdir -p dist/tdssh/licenses/netwatch
+          cp vendor/netwatch/LICENSE-* dist/tdssh/licenses/netwatch/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tdssh-${{ runner.os }}-x64
+          path: dist/tdssh
+          retention-days: 14

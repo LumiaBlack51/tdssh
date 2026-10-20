@@ -1,0 +1,14 @@
+# Mihomo / Clash Meta: MERGE into the existing profile; do not replace it.
+# These rules belong BEFORE MATCH, rule sets, GEOIP and other broad rules.
+mode: rule
+find-process-mode: always
+rules:
+  - PROCESS-NAME,tdssh,DIRECT
+  - PROCESS-NAME,tdssh.exe,DIRECT
+  - DOMAIN-SUFFIX,iroh.link,DIRECT
+  # Append your existing rules below. Do not add a second `rules` mapping.
+dns:
+  fake-ip-filter:
+    - '+.iroh.link'
+  # Keep the existing DNS settings. If fake-ip-filter-mode is `rule`, use
+  # that mode's rule syntax instead of copying this blacklist entry.
