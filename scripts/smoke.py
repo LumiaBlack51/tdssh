@@ -42,10 +42,10 @@ def main():
         network = ['--relay-only'] if args.live_relay else ['--no-relay']
         if args.force_direct:
             network += ['--force-direct']
-        def start(state, *extra):
+        def start(state, *extra, stdin=None):
             log = open(root / f'{state}-{len(logs)}.log', 'w+', encoding='utf-8')
             logs.append(log)
-            proc = subprocess.Popen([binary, '--state-dir', str(root / state), *network, *extra], stdout=subprocess.DEVNULL, stderr=log)
+            proc = subprocess.Popen([binary, '--state-dir', str(root / state), *network, *extra], stdout=subprocess.DEVNULL, stderr=log, stdin=stdin)
             processes.append(proc)
             return proc
         listener = socket.socket()
@@ -90,7 +90,25 @@ def main():
                 raise failures[0]
             assert result == payload, 'download differs'
             assert server.poll() is None and client.poll() is None
-            print(json.dumps({'passed': True, 'mode': 'public-relay' if args.live_relay else 'local-udp', 'force_direct': args.force_direct, 'bytes_each_direction': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(), 'independent_nat_tested': False}))
+            # Keep stdin open after the peer revokes this identity. Tokio's
+            # blocking stdin reader must not hold process shutdown forever.
+            stdio_id = run('client-stdio', 'init')
+            run('server', 'allow', stdio_id)
+            proxy = start('client-stdio', 'proxy', '--peer', server_id, '--ticket-file', str(ticket), stdin=subprocess.PIPE)
+            proxy_log = Path(logs[-1].name)
+            deadline = time.monotonic() + 35
+            while 'connected peer=' not in proxy_log.read_text():
+                if proxy.poll() is not None or time.monotonic() > deadline:
+                    raise RuntimeError('proxy did not connect before revocation test')
+                time.sleep(0.05)
+            # Give the asynchronous stdin task a chance to enter its OS read.
+            time.sleep(0.1)
+            run('server', 'revoke', stdio_id)
+            proxy.wait(timeout=8)
+            assert proxy.returncode != 0, 'revoked proxy must report failure'
+            assert proxy.stdin is not None and not proxy.stdin.closed
+            proxy.stdin.close()
+            print(json.dumps({'passed': True, 'mode': 'public-relay' if args.live_relay else 'local-udp', 'force_direct': args.force_direct, 'bytes_each_direction': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(), 'proxy_revocation_with_open_stdin': True, 'independent_nat_tested': False}))
         except BaseException:
             for log in logs:
                 log.flush(); log.seek(0)
@@ -99,6 +117,8 @@ def main():
         finally:
             listener.close()
             for process in processes:
+                if process.stdin is not None:
+                    process.stdin.close()
                 if process.poll() is None:
                     process.terminate()
             for process in processes:

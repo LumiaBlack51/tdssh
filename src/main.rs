@@ -119,9 +119,23 @@ enum Command {
     Interfaces,
 }
 
-#[tokio::main]
-async fn main() -> std::process::ExitCode {
-    match run().await {
+fn main() -> std::process::ExitCode {
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("tdssh: cannot start async runtime: {error}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    let result = runtime.block_on(run());
+    // Tokio stdin uses an uncancellable blocking OS read. A peer disconnect
+    // must not wait for the caller to close its stdin before this process exits.
+    // Network operations explicitly close their endpoint before returning.
+    runtime.shutdown_background();
+    match result {
         Ok(code) => std::process::ExitCode::from(code),
         Err(error) => {
             eprintln!("tdssh: {error:#}");
