@@ -44,6 +44,18 @@ Tokio stdin 的不可取消阻塞读取阻止了默认 runtime 销毁。
 改为在网络端点关闭后使用 `shutdown_background` 结束 runtime。相同测试在修复后
 及时以非零状态退出，不需要调用方先关闭 stdin。该回归随双平台 CLI smoke 运行。
 
+## 2026-10-29：路径重试队列内存回归
+
+详见 [故障记录](incidents.md)。固定依赖 iroh 1.3.0 的本地补丁对候选路径重试
+去重并限制为 64 项。共享生产入队函数的 3 项回归在原始入队逻辑下失败，补丁后通过。
+Linux 离线锁定构建、格式、Clippy 和全部 36 项测试通过（含 3 项按需退出回归）；真实本地双进程 QUIC、
+隔离 OpenSSH shell/SCP/SFTP/ProxyCommand 及退出码验证通过。其他依赖版本保持不变。
+
+队列回归模拟多连接同时遇到路径额度耗尽；未重现用户原网络上的额度耗尽，
+也未取得原 OOM 进程分配堆栈。尚未验证本次补丁的跨 NAT 长时间运行和 Windows 原生行为。
+已构建并部署 Linux 优化客户端，重启后的现有 Windows SSH 目标连通性验证通过。
+本机按用户选择开启最后会话结束后 60 秒退出；部署状态和验证边界见故障记录。
+
 ## GitHub 原生检查
 
 [最终原生验证](https://github.com/LumiaBlack51/tdssh/actions/runs/39423203064)，

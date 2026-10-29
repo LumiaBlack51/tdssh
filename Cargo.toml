@@ -36,6 +36,7 @@ windows-sys = { version = "0.61", features = ["Win32_Networking_WinSock", "Win32
 
 [patch.crates-io]
 netwatch = { path = "vendor/netwatch" }
+iroh = { path = "vendor/iroh" }
 
 [profile.release]
 lto = "thin"

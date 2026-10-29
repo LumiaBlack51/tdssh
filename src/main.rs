@@ -101,6 +101,9 @@ enum Command {
         listen: SocketAddr,
         #[arg(long)]
         ready_file: Option<PathBuf>,
+        /// Exit after this many seconds with no active local sessions (1..86400).
+        #[arg(long, value_parser = clap::value_parser!(u64).range(1..=86400))]
+        idle_timeout: Option<u64>,
     },
     /// Start the tunnel and native OpenSSH together, preserving terminal support.
     Ssh {
@@ -217,14 +220,23 @@ async fn run() -> anyhow::Result<u8> {
         }
         Command::Proxy { .. } => tunnel::proxy(endpoint, address.unwrap()).await?,
         Command::Forward {
-            listen, ready_file, ..
+            listen,
+            ready_file,
+            idle_timeout,
+            ..
         } => {
             let listener = TcpListener::bind(listen).await?;
             eprintln!("listening {}", listener.local_addr()?);
             if let Some(path) = ready_file {
                 write_public(&path, listener.local_addr()?.to_string().as_bytes())?;
             }
-            tunnel::forward(listener, endpoint, address.unwrap()).await?;
+            tunnel::forward_with_idle_timeout(
+                listener,
+                endpoint,
+                address.unwrap(),
+                idle_timeout.map(std::time::Duration::from_secs),
+            )
+            .await?;
         }
         Command::Ssh {
             peer,

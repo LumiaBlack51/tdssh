@@ -287,14 +287,25 @@ pub async fn forward(
     endpoint: Endpoint,
     peer: EndpointAddr,
 ) -> anyhow::Result<()> {
+    forward_with_idle_timeout(listener, endpoint, peer, None).await
+}
+
+pub async fn forward_with_idle_timeout(
+    listener: TcpListener,
+    endpoint: Endpoint,
+    peer: EndpointAddr,
+    idle_timeout: Option<Duration>,
+) -> anyhow::Result<()> {
     loopback(listener.local_addr()?)?;
     let slots = Arc::new(Semaphore::new(32));
     let mut jobs = JoinSet::new();
+    let mut idle_deadline = idle_timeout.map(|timeout| tokio::time::Instant::now() + timeout);
     loop {
         tokio::select! {
             accept = listener.accept() => {
                 let (tcp, _) = accept?;
                 let Ok(permit) = slots.clone().try_acquire_owned() else { continue; };
+                idle_deadline = None;
                 let endpoint = endpoint.clone();
                 let peer = peer.clone();
                 jobs.spawn(async move {
@@ -308,7 +319,16 @@ pub async fn forward(
                     if result.is_err() { eprintln!("forwarded session closed or failed"); }
                 });
             }
-            _ = jobs.join_next(), if !jobs.is_empty() => {},
+            _ = jobs.join_next(), if !jobs.is_empty() => {
+                if jobs.is_empty() {
+                    idle_deadline = idle_timeout.map(|timeout| tokio::time::Instant::now() + timeout);
+                }
+            },
+            _ = tokio::time::sleep_until(idle_deadline.unwrap_or_else(tokio::time::Instant::now)),
+                if idle_deadline.is_some() && jobs.is_empty() => {
+                eprintln!("forward idle timeout reached; exiting");
+                break;
+            },
             _ = shutdown() => break,
         }
     }

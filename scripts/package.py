@@ -26,10 +26,11 @@ def main():
             shutil.copyfile(source / file, root / file)
         for folder in ['examples', 'docs', 'licenses']:
             shutil.copytree(source / folder, root / folder)
-        licenses = root / 'licenses' / 'netwatch'
-        licenses.mkdir()
-        for file in (source / 'vendor' / 'netwatch').glob('LICENSE-*'):
-            shutil.copyfile(file, licenses / file.name)
+        for dependency in ['netwatch', 'iroh']:
+            licenses = root / 'licenses' / dependency
+            licenses.mkdir()
+            for file in (source / 'vendor' / dependency).glob('LICENSE-*'):
+                shutil.copyfile(file, licenses / file.name)
         scripts = root / 'scripts'
         scripts.mkdir()
         names = ['install.sh', 'install-service.sh'] if args.platform == 'Linux' else ['install.ps1', 'install-service.ps1']

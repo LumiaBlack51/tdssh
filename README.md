@@ -116,6 +116,12 @@ Host remote-via-tdssh
 
 之后直接 `ssh remote-via-tdssh`，也可在 VS Code Remote SSH 中使用该主机。
 
+按需启动的客户端可加 `forward --idle-timeout 60`：没有本地会话时等待 60 秒正常退出，
+新会话会取消倒计时。已经连接但暂时没有流量的 SSH 会话不会被此选项终止。
+默认不设置空闲退出；服务端 `serve` 不受此选项影响。由 SSH ProxyCommand 启动的
+systemd unit 应使用 `Restart=no`，退出后等下一次相关 SSH 请求再启动；不要启用
+为开机服务，也不要把启动命令放入通配的 `Host *` 配置。
+
 每份身份目录同时只允许一个网络进程，以防同一设备 ID 的多次中继注册互相顶掉。
 `allow`、`revoke`、`id` 可在后台运行时使用。已有 `forward` 时不要用同一身份额外
 启动 `tdssh ssh` 或 `proxy`；通过该转发运行任意多个原生 `ssh`，或用另外的

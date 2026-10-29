@@ -24,6 +24,106 @@ async fn bounded<T>(f: impl std::future::Future<Output = T>) -> T {
 }
 
 #[tokio::test]
+async fn forward_exits_after_initial_idle_timeout() {
+    let (server, client) = (local().await, local().await);
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    bounded(tunnel::forward_with_idle_timeout(
+        listener,
+        client,
+        server.addr(),
+        Some(Duration::from_millis(50)),
+    ))
+    .await
+    .unwrap();
+    server.close().await;
+}
+
+#[tokio::test]
+async fn forward_idle_timeout_preserves_live_sessions_and_rearms_after_last_close() {
+    let dir = tempfile::tempdir().unwrap();
+    let state = State::new(dir.path().join("state"));
+    state.init().unwrap();
+    let (server, client) = (local().await, local().await);
+    state.authorize(client.id(), true).unwrap();
+    let backend_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let target = backend_listener.local_addr().unwrap();
+    let backend = tokio::spawn(async move {
+        let mut jobs = tokio::task::JoinSet::new();
+        loop {
+            tokio::select! {
+                accepted = backend_listener.accept() => {
+                    let (tcp, _) = accepted.unwrap();
+                    jobs.spawn(async move {
+                        let (mut read, mut write) = tcp.into_split();
+                        tokio::io::copy(&mut read, &mut write).await.unwrap();
+                    });
+                }
+                _ = jobs.join_next(), if !jobs.is_empty() => {},
+            }
+        }
+    });
+    let service = tokio::spawn(tunnel::serve(server.clone(), state, target));
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let forward = tokio::spawn(tunnel::forward_with_idle_timeout(
+        listener,
+        client.clone(),
+        server.addr(),
+        Some(Duration::from_millis(200)),
+    ));
+    let mut sessions = Vec::new();
+    for _ in 0..2 {
+        let mut tcp = TcpStream::connect(addr).await.unwrap();
+        tcp.write_all(b"x").await.unwrap();
+        assert_eq!(bounded(tcp.read_u8()).await.unwrap(), b'x');
+        sessions.push(tcp);
+    }
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(
+        !forward.is_finished(),
+        "quiet live sessions must remain open"
+    );
+    drop(sessions.pop());
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(
+        !forward.is_finished(),
+        "one remaining session prevents exit"
+    );
+    drop(sessions);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert!(
+        !forward.is_finished(),
+        "last close must get a full idle interval"
+    );
+    let mut renewed = TcpStream::connect(addr).await.unwrap();
+    renewed.write_all(b"y").await.unwrap();
+    assert_eq!(bounded(renewed.read_u8()).await.unwrap(), b'y');
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(
+        !forward.is_finished(),
+        "new session cancels the idle countdown"
+    );
+    drop(renewed);
+    bounded(forward).await.unwrap().unwrap();
+    backend.abort();
+    service.abort();
+    client.close().await;
+    server.close().await;
+}
+
+#[tokio::test]
+async fn forward_without_idle_timeout_remains_available() {
+    let (server, client) = (local().await, local().await);
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let forward = tokio::spawn(tunnel::forward(listener, client.clone(), server.addr()));
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(!forward.is_finished());
+    forward.abort();
+    client.close().await;
+    server.close().await;
+}
+
+#[tokio::test]
 async fn authenticated_quic_transfers_large_payload_and_half_close() {
     let dir = tempfile::tempdir().unwrap();
     let state = State::new(dir.path().join("state"));

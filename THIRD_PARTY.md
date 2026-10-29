@@ -23,6 +23,23 @@ library and platform sources are retained to support native Linux and Windows.
 unprotected replacement socket. This patch is necessary because iroh 1.3.0's
 public bind API selects a source IP without exposing OS interface socket options.
 
+`vendor/iroh/` is the iroh 1.3.0 crates.io source archive, SHA256
+`885787b892b5e2507c701f132ecbd45d2bad4bbb75157a19427087c16dadb833`,
+upstream commit `0072d7d84b233f9e7185eb676f049beaf557ac03` (package path
+`iroh`). The archive was verified before extraction. Its redundant `Cargo.lock`
+and `.cargo_vcs_info.json` are omitted; upstream sources and manifest are retained.
+MIT OR Apache-2.0; root license files from that exact upstream commit are retained,
+along with the archive's BSD license notice.
+
+The local patch deduplicates pending path-open retries and caps the queue at 64
+distinct candidates, discarding the oldest candidate on overflow. It follows
+the mechanism fixed in [upstream #4551](https://github.com/n0-computer/iroh/pull/4551)
+and adds a hard bound for address churn as suggested in
+[upstream #4509](https://github.com/n0-computer/iroh/issues/4509).
+`tests/path_retry_queue.rs` exercises the same helper used by the dependency,
+including retries across several connections. See `docs/incidents.md` for the
+local incident evidence and the limits of this fix.
+
 Other dependencies are downloaded by Cargo, pinned in `Cargo.lock`, and retain
 their respective licenses. iroh 1.3.0 supplies QUIC/TLS, NAT traversal,
 relay fallback and signed device discovery. No new cryptography is implemented.
