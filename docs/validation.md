@@ -59,7 +59,25 @@ Linux 离线锁定构建、格式、Clippy 和全部 36 项测试通过（含 3 
 [本次 GitHub 原生验证](https://github.com/LumiaBlack51/tdssh/actions/runs/40810791667)
 在提交 `7af3068ba1e5194309ef5c03e5bfb0cd49d6f1d8` 上全部通过：Linux 36 项、
 Windows 32 项 Rust 测试，两端格式/Clippy/优化构建、实际本地 QUIC 传输和安装包生成；
-Linux 额外通过隔离 OpenSSH 集成。Windows CI 的构建结果尚未安装到用户 Windows 设备。
+Linux 额外通过隔离 OpenSSH 集成。该次 Windows CI 之后的设备部署见下节。
+
+## 2026-10-29：v0.1.1 发布与 Windows / WSL 部署
+
+[v0.1.1](https://github.com/LumiaBlack51/tdssh/releases/tag/v0.1.1) 对应提交
+`1d5d46d921d236aa9e4775297e94cd8bfabd79ca`。
+[发布构建](https://github.com/LumiaBlack51/tdssh/actions/runs/40829829036) 在两平台全部通过：
+Linux 36 项、Windows 32 项 Rust 测试，以及格式、Clippy、优化构建、真实 QUIC、
+脚本与安装包检查；Linux 额外通过隔离 OpenSSH 集成。
+
+两个平台的归档及内层可执行文件 SHA256 经校验后，已更新到用户 Windows 和本机 WSL。
+Windows 安装后的二进制通过 4,194,461 字节真实双向 QUIC 与保持 stdin 打开的撤销退出回归；
+原计划任务启动的服务器通过临时独立客户端连接，隧道中的 ED25519 SSH 主机密钥与
+既有 Windows OpenSSH 目标一致。WSL 包通过相同 QUIC 回归及 SSH、SCP/SFTP、
+ProxyCommand 和原生 SSH 退出码 37 检查，安装后校验二进制与已验证包一致。
+
+原设备身份、客户端授权及命令包装脚本的 SHA256 均保持一致，临时授权已撤销。
+Windows 原开机任务已恢复运行；WSL 独立服务保持手动启动且当前停止，未新增启动项。
+未完成跨独立 NAT 的长时间运行验证，也未执行真实开机重启测试。
 
 ## GitHub 原生检查
 

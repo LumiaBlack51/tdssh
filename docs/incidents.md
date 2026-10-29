@@ -14,8 +14,8 @@
 - 回归验证：`tests/path_retry_queue.rs` 直接使用生产补丁的入队函数；先将原始 `push_back` 等价抽入该函数，3 项测试全部失败；双连接重试第一轮将 `[1,2]` 扩成 `[1,1,2,2]`。加入去重及上限后，同样的 3 项测试通过（100 轮重复失败、地址变化上限、满队列重复地址不误删其他候选）。这是受控队列测试，不是原网络故障现场重现。
 - 完整验证（Linux / Rust 1.96，离线锁定依赖，编译并发 2）：`cargo fmt --check`、`cargo clippy --offline --locked --all-targets -j 2 -- -D warnings`、`cargo test --offline --locked -j 2`（含空闲退出回归共 36 项）、调试构建及 release 优化构建均通过。优化程序的 `scripts/smoke.py` 通过真实本地双进程 QUIC 双向 4,194,461 字节及 stdin 保持打开时的撤销退出；`scripts/smoke-ssh.py` 通过隔离 OpenSSH shell、SCP/SFTP 2,055,941 字节、ProxyCommand 和原生 SSH 退出码 37 检查。这些测试使用临时身份、密钥及独立端口。
 - 部署状态：源码修复、生命周期回归和本条记录一起纳入 Git 版本历史。用户明确同意中断现有相关 SSH 后，已原子替换本机客户端并重启常驻转发；核对运行中可执行文件与验证过的 release 程序 SHA256 一致。重启后到现有 Windows 目标的真实 SSH 命令回显验证通过；保留一份旧程序及原 unit 以便回退，映射和校验值仅在本机私有目录保存。
-- 验证边界：未重现原网络现场，无原进程堆转储；未进行跨 NAT 长时间运行验证。Windows 原生 CI 已构建并通过回归，尚未替换用户 Windows 端运行程序。
-- 提交与发布：[修复提交 `1eb8808`](https://github.com/LumiaBlack51/tdssh/commit/1eb880813bcfc9d24bce3c9b8c55069f0966759a)；本条故障记录随修复一起提交。尚未发布新的 GitHub Release。
+- 验证边界：未重现原网络现场，无原进程堆转储；未进行跨 NAT 长时间运行验证。Windows 原生 CI 已构建并通过回归；后续设备部署见本页末尾。
+- 提交与发布：[修复提交 `1eb8808`](https://github.com/LumiaBlack51/tdssh/commit/1eb880813bcfc9d24bce3c9b8c55069f0966759a)；本条故障记录随修复一起提交。修复已随 [v0.1.1](https://github.com/LumiaBlack51/tdssh/releases/tag/v0.1.1) 发布。
 
 ### Swap 的后续观察
 
@@ -36,3 +36,11 @@
 修复与记录已同步到 `main`。[双平台原生验证](https://github.com/LumiaBlack51/tdssh/actions/runs/40810791667) 在提交 `7af3068ba1e5194309ef5c03e5bfb0cd49d6f1d8` 上全部通过：Linux 36 项 Rust 测试、真实 QUIC/SSH/SCP/SFTP、ProxyCommand、systemd/pwsh 检查及安装包生成；Windows 32 项 Rust 测试、真实双进程 QUIC、保持 stdin 打开的撤销退出、计划任务配置和安装包生成。两端格式、Clippy 和优化构建均通过。此结果不等于跨 NAT 长时间运行验证。
 
 本地已删除本次 `target/`、`.cache/`、Python 字节码及确认重复的待部署配置，释放约 4.22 GiB。运行程序与一套回退程序的校验值已重新核对；私有故障证据继续保留，共享 Cargo 依赖未清理。已确认工作分支的提交整合到远端 `main` 后删除本地工作分支，GitHub 合并后自动删除分支设置已开启。
+
+### Windows / WSL 更新与正式发布（2026-10-29）
+
+已发布 [v0.1.1](https://github.com/LumiaBlack51/tdssh/releases/tag/v0.1.1)，包含队列上限补丁和可选的转发空闲退出。
+[该版本原生 CI](https://github.com/LumiaBlack51/tdssh/actions/runs/40829829036) 全部通过。
+Windows 常驻服务器及本机 WSL 安装已升级，并在本机完成真实 QUIC 和 OpenSSH 检查；
+Windows 隧道主机密钥匹配，临时客户端授权已撤销。原身份、授权、SSH 目标、命令包装及启动方式保留。
+验证细节与边界见 [验证记录](validation.md)。

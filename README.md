@@ -5,7 +5,7 @@ LAN、VPN、固定公网 IP 或路由器端口转发。先尝试 UDP 打洞，�
 加密的 iroh 中继。Shell、SCP、SFTP、端口转发与 IDE 仍使用系统 OpenSSH。
 
 支持 Ubuntu bash、Ubuntu pwsh、Windows pwsh。每台设备运行独立 `tdssh`，不要求安装
-TwoDrive、不使用 OneDrive 账号。当前版本是首个可用实现；验证范围见
+TwoDrive、不使用 OneDrive 账号。验证范围见
 [验证记录](docs/validation.md)。
 
 v0.1.1 包含 iroh 路径重试队列去重与 64 项上限，修复已复现的队列增长机制；
