@@ -15,7 +15,7 @@
 - 完整验证（Linux / Rust 1.96，离线锁定依赖，编译并发 2）：`cargo fmt --check`、`cargo clippy --offline --locked --all-targets -j 2 -- -D warnings`、`cargo test --offline --locked -j 2`（含空闲退出回归共 36 项）、调试构建及 release 优化构建均通过。优化程序的 `scripts/smoke.py` 通过真实本地双进程 QUIC 双向 4,194,461 字节及 stdin 保持打开时的撤销退出；`scripts/smoke-ssh.py` 通过隔离 OpenSSH shell、SCP/SFTP 2,055,941 字节、ProxyCommand 和原生 SSH 退出码 37 检查。这些测试使用临时身份、密钥及独立端口。
 - 部署状态：源码修复、生命周期回归和本条记录一起纳入 Git 版本历史。用户明确同意中断现有相关 SSH 后，已原子替换本机客户端并重启常驻转发；核对运行中可执行文件与验证过的 release 程序 SHA256 一致。重启后到现有 Windows 目标的真实 SSH 命令回显验证通过；保留一份旧程序及原 unit 以便回退，映射和校验值仅在本机私有目录保存。
 - 验证边界：未重现原网络现场，无原进程堆转储；未进行跨 NAT 长时间运行验证，未构建或部署 Windows 端补丁。
-- 提交与发布：修复提交哈希待提交后补充；尚未发布新的 GitHub Release。
+- 提交与发布：[修复提交 `1eb8808`](https://github.com/LumiaBlack51/tdssh/commit/1eb880813bcfc9d24bce3c9b8c55069f0966759a)；本条故障记录随修复一起提交。尚未发布新的 GitHub Release。
 
 ### Swap 的后续观察
 
