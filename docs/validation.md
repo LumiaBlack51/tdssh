@@ -52,9 +52,14 @@ Linux 离线锁定构建、格式、Clippy 和全部 36 项测试通过（含 3 
 隔离 OpenSSH shell/SCP/SFTP/ProxyCommand 及退出码验证通过。其他依赖版本保持不变。
 
 队列回归模拟多连接同时遇到路径额度耗尽；未重现用户原网络上的额度耗尽，
-也未取得原 OOM 进程分配堆栈。尚未验证本次补丁的跨 NAT 长时间运行和 Windows 原生行为。
+也未取得原 OOM 进程分配堆栈。尚未验证本次补丁的跨 NAT 长时间运行。
 已构建并部署 Linux 优化客户端，重启后的现有 Windows SSH 目标连通性验证通过。
 本机按用户选择开启最后会话结束后 60 秒退出；部署状态和验证边界见故障记录。
+
+[本次 GitHub 原生验证](https://github.com/LumiaBlack51/tdssh/actions/runs/40810791667)
+在提交 `7af3068ba1e5194309ef5c03e5bfb0cd49d6f1d8` 上全部通过：Linux 36 项、
+Windows 32 项 Rust 测试，两端格式/Clippy/优化构建、实际本地 QUIC 传输和安装包生成；
+Linux 额外通过隔离 OpenSSH 集成。Windows CI 的构建结果尚未安装到用户 Windows 设备。
 
 ## GitHub 原生检查
 
